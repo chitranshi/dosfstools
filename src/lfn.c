@@ -432,7 +432,7 @@ void lfn_add_slot( DIR_ENT *de, loff_t dir_offset )
 	if (interactive)
 	    printf( "1: Fix.\n2: Leave it.\n" );
 	else printf( "Auto-setting to 0.\n" );
-	if (interactive && get_key("12","?") == '1') {
+	if (!interactive || get_key("12","?") == '1') {
 	    lfn_repair_filename(lfn);
 	    fs_write( dir_offset, sizeof(LFN_ENT), lfn );
 	}
