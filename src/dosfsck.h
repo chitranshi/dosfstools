@@ -194,6 +194,7 @@ extern int interactive,rw,list,verbose,test,write_immed;
 extern int atari_format;
 extern unsigned n_files;
 extern void *mem_queue;
+extern char *filenameRestriction;
 
 /* value to use as end-of-file marker */
 #define FAT_EOF(fs)	((atari_format ? 0xfff : 0xff8) | FAT_EXTD(fs))

@@ -46,14 +46,17 @@ int interactive = 0,rw = 0,list = 0,test = 0,verbose = 0,write_immed = 0;
 int atari_format = 0;
 unsigned n_files = 0;
 void *mem_queue = NULL;
+char *filenameRestriction = 0;
 
 
 static void usage(char *name)
 {
-    fprintf(stderr,"usage: %s [-aAflrtvVwy] [-d path -d ...] "
+    fprintf(stderr,"usage: %s [-aAcflrtvVwy] [-d path -d ...] "
       "[-u path -u ...]\n%15sdevice\n",name,"");
     fprintf(stderr,"  -a       automatically repair the file system\n");
     fprintf(stderr,"  -A       toggle Atari file system format\n");
+    fprintf(stderr,"  -c chars Choose preset for forbidden characters for LFN filenames\n");
+    fprintf(stderr,"  -C chars Set forbidden characters for LFN filenames\n");
     fprintf(stderr,"  -d path  drop that file\n");
     fprintf(stderr,"  -f       salvage unused chains to files\n");
     fprintf(stderr,"  -l       list path names\n");
@@ -111,7 +114,7 @@ int main(int argc,char **argv)
     interactive = 1;
     check_atari();
 
-    while ((c = getopt(argc,argv,"Aad:flnprtu:vVwy")) != EOF)
+    while ((c = getopt(argc,argv,"Aac:d:flnprtu:vVwy")) != EOF)
 	switch (c) {
 	    case 'A': /* toggle Atari format */
 	  	atari_format = !atari_format;
@@ -155,6 +158,24 @@ int main(int argc,char **argv)
 		break;
 	    case 'w':
 		write_immed = 1;
+		break;
+	    case 'c':
+	        if ( !strcasecmp(optarg, "Linux") )   /* This is the list of characters the linux kernel blacklists for creating filenames in case of vfat */
+		   filenameRestriction = "*?<>|\":/\\";
+		else if ( !strcasecmp(optarg, "Unix") )   /* Unix should be able to cope with all characters except '/' */
+		   filenameRestriction = "/";
+		else if ( !strcasecmp(optarg, "Windows") )
+		   filenameRestriction = "*?<>|\":/\\";   /* The list from the linux kernel should be fine for windows */
+		else if ( !strcasecmp(optarg, "None") )
+		   filenameRestriction = 0;
+		else
+		{
+		   printf("Unknown value for option -c, valid values are Linux, Unix, Windows and None\n");
+		   return 1;
+		}
+		break;
+	    case 'C':
+		filenameRestriction = strdup(optarg);
 		break;
 	    default:
 		usage(argv[0]);

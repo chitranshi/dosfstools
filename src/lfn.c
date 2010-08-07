@@ -172,6 +172,45 @@ void lfn_reset( void )
 }
 
 
+static int lfn_check_filename(LFN_ENT *lfn)
+{
+   int valid = 1;
+   int i;
+   char* p;
+   for (p = filenameRestriction; p && *p; p++)
+   {
+      for (i=0; i<10; i+=2)
+         if ( lfn->name0_4[i] == *p && lfn->name0_4[i+1] == '\0' )
+            valid = 0;
+      for (i=0; i<12; i+=2)
+         if ( lfn->name5_10[i] == *p && lfn->name5_10[i+1] == '\0' )
+            valid = 0;
+      for (i=0; i<4; i+=2)
+         if ( lfn->name11_12[i] == *p && lfn->name11_12[i+1] == '\0' )
+            valid = 0;
+   }
+   return valid;
+}
+
+static void lfn_repair_filename(LFN_ENT *lfn)
+{
+   int i;
+   char* p;
+
+   for (p = filenameRestriction; p && *p; p++)
+   {
+      for (i=0; i<10; i+=2)
+         if ( lfn->name0_4[i] == *p && lfn->name0_4[i+1] == '\0' )
+            lfn->name0_4[i]  = '_';
+      for (i=0; i<12; i+=2)
+         if ( lfn->name5_10[i] == *p && lfn->name5_10[i+1] == '\0' )
+            lfn->name5_10[i]  = '_';
+      for (i=0; i<4; i+=2)
+         if ( lfn->name11_12[i] == *p && lfn->name11_12[i+1] == '\0' )
+            lfn->name11_12[i]  = '_';
+   }
+}
+
 /* This function is only called with de->attr == VFAT_LN_ATTR. It stores part
  * of the long name. */
 void lfn_add_slot( DIR_ENT *de, loff_t dir_offset )
@@ -379,6 +418,23 @@ void lfn_add_slot( DIR_ENT *de, loff_t dir_offset )
 	    lfn->start = CT_LE_W(0);
 	    fs_write( dir_offset+offsetof(LFN_ENT,start),
 		      sizeof(lfn->start),&lfn->start );
+	}
+    }
+
+    if (!lfn_check_filename(lfn))
+    {
+	char *parts = CNV_PARTS_SO_FAR();
+
+	printf( "Found invalid filename in VFAT entry ('%s')\n", parts);
+
+	free( parts );
+
+	if (interactive)
+	    printf( "1: Fix.\n2: Leave it.\n" );
+	else printf( "Auto-setting to 0.\n" );
+	if (interactive && get_key("12","?") == '1') {
+	    lfn_repair_filename(lfn);
+	    fs_write( dir_offset, sizeof(LFN_ENT), lfn );
 	}
     }
 }
